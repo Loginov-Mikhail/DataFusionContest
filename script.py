@@ -28,7 +28,7 @@ with open('tokenizer_item_name.json') as f:
     tokenizer_goods = tokenizer_from_json(data)
 
 # Загрузка модели
-model = pickle.load(open('model_v1.sav', 'rb'))
+model = pickle.load(open('model_v2.sav', 'rb'))
 
 # Обработка названий товаров по полученному словарю
 sequences_goods = tokenizer_goods.texts_to_sequences(df['item_name'])
