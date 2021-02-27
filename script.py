@@ -4,12 +4,15 @@ import pandas as pd
 import numpy as np
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import f1_score, accuracy_score
 import io
 import json
 from tensorflow.keras.preprocessing.text import tokenizer_from_json
-import pickle
+
+from tensorflow.keras import Input, Model, models, optimizers
+from tensorflow.keras.layers import Dense, Dropout, LSTM, GRU, concatenate, Flatten, Embedding
+from tensorflow.keras.utils import plot_model
+from tensorflow.keras.callbacks import ModelCheckpoint
 
 SLICE = 1000000
 
@@ -28,7 +31,27 @@ with open('tokenizer_item_name.json') as f:
     tokenizer_goods = tokenizer_from_json(data)
 
 # Загрузка модели
-model = pickle.load(open('model_v2.sav', 'rb'))
+#from tensorflow.keras import Input, Model, regularizers, optimizers, models
+
+#load structure
+json_file = open('model_v3.json', "r")
+loaded_model_json = json_file.read()
+json_file.close()
+
+model2 = models.model_from_json(loaded_model_json)
+# load weights
+model2.load_weights('model_v3.h5')
+print("Done")
+model = Model(model2.input, model2.layers[-1].output)
+#model.trainable = True
+
+loss='categorical_crossentropy'#binary_crossentropy categorical_crossentropy
+optimiser=optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
+metrics1='accuracy'
+model.compile(optimizer=optimiser, 
+              loss=loss, 
+              metrics=[metrics1])
+model.summary()
 
 # Обработка названий товаров по полученному словарю
 sequences_goods = tokenizer_goods.texts_to_sequences(df['item_name'])
@@ -46,7 +69,8 @@ while len(x1) > SLICE:
     x = x1[:SLICE]
     y = model.predict(x)
     yPred = pd.DataFrame(y, columns=dummiesColumnsName)
-    zPred = pd.DataFrame(pd.get_dummies(yPred).idxmax(1), columns=['pred'])
+    zPred = pd.DataFrame(pd.get_dummies(yPred).idxmax(1),
+                         columns=['pred'])
     zPred['pred'] = zPred['pred'].astype('uint8')
     zFullPred = zFullPred.append(zPred)
     x1 = x1[SLICE:]
